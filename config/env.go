@@ -22,6 +22,7 @@ type mongodb struct {
 }
 
 type vk struct {
+	UserTokens   string `envconfig:"VK_USERTOKENS"`
 	AppID        string `envconfig:"VK_APPID"`
 	AppSecretKey string `envconfig:"VK_APPSECRETKEY"`
 }

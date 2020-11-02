@@ -5,12 +5,14 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
+	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/google/uuid"
 	pbUser "github.com/nnqq/scr-proto/codegen/go/user"
 	"github.com/nnqq/scr-user/config"
 	"github.com/nnqq/scr-user/logger"
 	"github.com/nnqq/scr-user/mongo"
 	"github.com/nnqq/scr-user/user"
+	"github.com/nnqq/scr-user/vk"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"strconv"
@@ -39,14 +41,23 @@ func (*server) VkAuth(ctx context.Context, req *pbUser.VkAuthRequest) (res *pbUs
 		return
 	}
 
+	vkUser, err := vk.UserApi.UsersGet(api.Params{
+		"user_ids": req.GetUid(),
+		"fields":   "photo_50,photo_200_orig",
+	})
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+		return
+	}
+
 	_, err = mongo.Users.UpdateOne(ctx, user.User{
 		VkID: req.GetUid(),
 	}, bson.M{
 		"$set": user.User{
-			FirstName: req.GetFirstName(),
-			LastName:  req.GetLastName(),
-			Photo:     req.GetPhoto(),
-			PhotoRec:  req.GetPhotoRec(),
+			FirstName: vkUser[0].FirstName,
+			LastName:  vkUser[0].LastName,
+			Photo:     vkUser[0].Photo50,
+			PhotoRec:  vkUser[0].Photo200Orig,
 		},
 		"$setOnInsert": user.User{
 			Token: uuid.New().String(),
