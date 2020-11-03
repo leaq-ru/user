@@ -7,10 +7,15 @@ import (
 const ServiceName = "user"
 
 type c struct {
+	Host     host
 	Grpc     grpc
 	MongoDB  mongodb
 	Vk       vk
 	LogLevel string `envconfig:"LOGLEVEL"`
+}
+
+type host struct {
+	URL string `envconfig:"HOST_URL"`
 }
 
 type grpc struct {
@@ -22,7 +27,6 @@ type mongodb struct {
 }
 
 type vk struct {
-	UserTokens   string `envconfig:"VK_USERTOKENS"`
 	AppID        string `envconfig:"VK_APPID"`
 	AppSecretKey string `envconfig:"VK_APPSECRETKEY"`
 }

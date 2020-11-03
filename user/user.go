@@ -8,6 +8,7 @@ type User struct {
 	Token     string             `bson:"t,omitempty"`
 	FirstName string             `bson:"f,omitempty"`
 	LastName  string             `bson:"l,omitempty"`
+	Email     string             `bson:"e,omitempty"`
 	Photo     string             `bson:"p,omitempty"`
 	PhotoRec  string             `bson:"pr,omitempty"`
 }

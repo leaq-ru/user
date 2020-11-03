@@ -2,8 +2,7 @@ package userimpl
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/google/uuid"
@@ -12,37 +11,97 @@ import (
 	"github.com/nnqq/scr-user/logger"
 	"github.com/nnqq/scr-user/mongo"
 	"github.com/nnqq/scr-user/user"
-	"github.com/nnqq/scr-user/vk"
+	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"strconv"
+	"net/url"
+	"strings"
 	"time"
 )
 
-func validateVkAuthHash(vkId uint32, inHash string) (valid bool) {
-	sum := md5.Sum([]byte(config.Env.Vk.AppID + strconv.Itoa(int(vkId)) + config.Env.Vk.AppSecretKey))
-	expectedHash := hex.EncodeToString(sum[:])
-	return expectedHash == inHash
+type resVkOAuth struct {
+	VkID        uint32 `json:"user_id"`
+	AccessToken string `json:"access_token"`
+	Email       string `json:"email"`
+}
+
+func makeSafeFastHTTPClient() *fasthttp.Client {
+	return &fasthttp.Client{
+		NoDefaultUserAgentHeader: true,
+		ReadTimeout:              5 * time.Second,
+		WriteTimeout:             5 * time.Second,
+		MaxConnWaitTimeout:       5 * time.Second,
+		MaxResponseBodySize:      4 * 1024 * 1024,
+		ReadBufferSize:           4 * 1024 * 1024,
+	}
+}
+
+func makeRedirectURI() string {
+	var scheme string
+	if config.Env.Host.URL == "leaq.local" {
+		scheme = "http://"
+	} else {
+		scheme = "https://"
+	}
+
+	return strings.Join([]string{
+		scheme,
+		config.Env.Host.URL,
+		"/vk-auth",
+	}, "")
 }
 
 func (*server) VkAuth(ctx context.Context, req *pbUser.VkAuthRequest) (res *pbUser.SelfUser, err error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	if req.GetFirstName() == "" || req.GetHash() == "" || req.GetLastName() == "" || req.GetPhoto() == "" ||
-		req.GetPhotoRec() == "" || req.GetUid() == 0 {
-		err = errors.New("invalid payload")
+	if req.GetCode() == "" {
+		err = errors.New("code required")
 		return
 	}
 
-	if !validateVkAuthHash(req.GetUid(), req.GetHash()) {
-		err = errors.New("invalid hash")
-		logger.Log.Error().Uint32("vkID", req.GetUid()).Str("hash", req.GetHash()).Err(err).Send()
+	oAuthURL, err := url.Parse("https://oauth.vk.com/access_token")
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+		return
+	}
+	q := oAuthURL.Query()
+	q.Add("client_id", config.Env.Vk.AppID)
+	q.Add("client_secret", config.Env.Vk.AppSecretKey)
+	q.Add("redirect_uri", makeRedirectURI())
+	q.Add("code", req.GetCode())
+	oAuthURL.RawQuery = q.Encode()
+
+	reqVk := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(reqVk)
+	reqVk.SetRequestURI(oAuthURL.String())
+
+	resVk := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(resVk)
+
+	err = makeSafeFastHTTPClient().Do(reqVk, resVk)
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+		return
+	}
+	if resVk.StatusCode() != fasthttp.StatusOK {
+		err = errors.New("VK response not 200 code")
+		logger.Log.Error().Err(err).Send()
 		return
 	}
 
-	vkUser, err := vk.UserApi.UsersGet(api.Params{
-		"user_ids": req.GetUid(),
+	var authUser resVkOAuth
+	err = json.Unmarshal(resVk.Body(), &authUser)
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+		return
+	}
+
+	vk := api.NewVK(authUser.AccessToken)
+	vk.Limit = api.LimitUserToken
+
+	userByID, err := vk.UsersGet(api.Params{
+		"user_ids": authUser.VkID,
 		"fields":   "photo_50,photo_200_orig",
 	})
 	if err != nil {
@@ -51,13 +110,15 @@ func (*server) VkAuth(ctx context.Context, req *pbUser.VkAuthRequest) (res *pbUs
 	}
 
 	_, err = mongo.Users.UpdateOne(ctx, user.User{
-		VkID: req.GetUid(),
+		VkID: authUser.VkID,
 	}, bson.M{
 		"$set": user.User{
-			FirstName: vkUser[0].FirstName,
-			LastName:  vkUser[0].LastName,
-			Photo:     vkUser[0].Photo50,
-			PhotoRec:  vkUser[0].Photo200Orig,
+			VkID:      uint32(userByID[0].ID),
+			FirstName: userByID[0].FirstName,
+			LastName:  userByID[0].LastName,
+			Email:     authUser.Email,
+			Photo:     userByID[0].Photo50,
+			PhotoRec:  userByID[0].Photo200Orig,
 		},
 		"$setOnInsert": user.User{
 			Token: uuid.New().String(),
@@ -68,23 +129,23 @@ func (*server) VkAuth(ctx context.Context, req *pbUser.VkAuthRequest) (res *pbUs
 		return
 	}
 
-	var u user.User
+	var dbUser user.User
 	err = mongo.Users.FindOne(ctx, user.User{
-		VkID: req.GetUid(),
-	}).Decode(&u)
+		VkID: authUser.VkID,
+	}).Decode(&dbUser)
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return
 	}
 
 	res = &pbUser.SelfUser{
-		Id:        u.ID.Hex(),
-		VkId:      u.VkID,
-		Token:     u.Token,
-		FirstName: u.FirstName,
-		LastName:  u.LastName,
-		Photo:     u.Photo,
-		PhotoRec:  u.PhotoRec,
+		Id:        dbUser.ID.Hex(),
+		VkId:      dbUser.VkID,
+		Token:     dbUser.Token,
+		FirstName: dbUser.FirstName,
+		LastName:  dbUser.LastName,
+		Photo:     dbUser.Photo,
+		PhotoRec:  dbUser.PhotoRec,
 	}
 	return
 }

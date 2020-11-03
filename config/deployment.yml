@@ -63,11 +63,11 @@ spec:
                 configMapKeyRef:
                   key: url
                   name: mongodb
-            - name: VK_USERTOKENS
+            - name: HOST_URL
               valueFrom:
-                secretKeyRef:
-                  key: usertokens
-                  name: vk
+                configMapKeyRef:
+                  key: url
+                  name: host
             - name: VK_APPID
               valueFrom:
                 configMapKeyRef:
