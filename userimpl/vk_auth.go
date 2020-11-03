@@ -86,7 +86,7 @@ func (*server) VkAuth(ctx context.Context, req *pbUser.VkAuthRequest) (res *pbUs
 	}
 	if resVk.StatusCode() != fasthttp.StatusOK {
 		err = errors.New("VK response not 200 code")
-		logger.Log.Error().Err(err).Send()
+		logger.Log.Error().Str("body", string(resVk.Body())).Err(err).Send()
 		return
 	}
 
