@@ -11,6 +11,7 @@ type c struct {
 	Grpc     grpc
 	MongoDB  mongodb
 	Vk       vk
+	Service  service
 	LogLevel string `envconfig:"LOGLEVEL"`
 }
 
@@ -29,6 +30,10 @@ type mongodb struct {
 type vk struct {
 	AppID        string `envconfig:"VK_APPID"`
 	AppSecretKey string `envconfig:"VK_APPSECRETKEY"`
+}
+
+type service struct {
+	Parser string `envconfig:"SERVICE_PARSER"`
 }
 
 var Env c

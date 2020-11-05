@@ -12,9 +12,17 @@ import (
 	"time"
 )
 
-var Users *mongo.Collection
+var (
+	Users            *mongo.Collection
+	Roles            *mongo.Collection
+	CompanyOwnTokens *mongo.Collection
+)
 
-const users = "users"
+const (
+	users            = "users"
+	roles            = "roles"
+	companyOwnTokens = "company_own_tokens"
+)
 
 func init() {
 	const timeout = 10
@@ -38,4 +46,6 @@ func init() {
 	createIndex(db)
 
 	Users = db.Collection(users)
+	Roles = db.Collection(roles)
+	CompanyOwnTokens = db.Collection(companyOwnTokens)
 }
