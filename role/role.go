@@ -5,7 +5,7 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 type Grant uint8
 
 const (
-	None Grant = iota
+	_ Grant = iota
 	Owner
 	Admin
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/nnqq/scr-user/config"
 	"github.com/nnqq/scr-user/logger"
-	"go.mongodb.org/mongo-driver/mongo"
+	m "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -13,15 +13,18 @@ import (
 )
 
 var (
-	Users            *mongo.Collection
-	Roles            *mongo.Collection
-	CompanyOwnTokens *mongo.Collection
+	Client           *m.Client
+	Users            *m.Collection
+	Roles            *m.Collection
+	OrgVerifyPending *m.Collection
+	OrgVerifySuccess *m.Collection
 )
 
 const (
 	users            = "users"
 	roles            = "roles"
-	companyOwnTokens = "company_own_tokens"
+	orgVerifyPending = "org_verify_pending"
+	orgVerifySuccess = "org_verify_success"
 )
 
 func init() {
@@ -29,7 +32,7 @@ func init() {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().
+	client, err := m.Connect(ctx, options.Client().
 		SetWriteConcern(writeconcern.New(
 			writeconcern.WMajority(),
 			writeconcern.J(true),
@@ -45,7 +48,9 @@ func init() {
 	db := client.Database(config.ServiceName)
 	createIndex(db)
 
+	Client = db.Client()
 	Users = db.Collection(users)
 	Roles = db.Collection(roles)
-	CompanyOwnTokens = db.Collection(companyOwnTokens)
+	OrgVerifyPending = db.Collection(orgVerifyPending)
+	OrgVerifySuccess = db.Collection(orgVerifySuccess)
 }
