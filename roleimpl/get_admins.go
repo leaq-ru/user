@@ -65,7 +65,7 @@ func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
 		return
 	}
 
-	cur, err := mongo.Roles.Find(ctx, role.Role{
+	curRoles, err := mongo.Roles.Find(ctx, role.Role{
 		CompanyID: companyOID,
 		Grant:     role.Admin,
 	}, options.Find().
@@ -78,15 +78,26 @@ func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
 		logger.Log.Error().Err(err).Send()
 		return
 	}
+	defer func() {
+		e := curRoles.Close(ctx)
+		if e != nil {
+			logger.Log.Error().Err(e).Send()
+		}
+	}()
 
 	var roleOIDs []primitive.ObjectID
-	for cur.Next(ctx) {
+	for curRoles.Next(ctx) {
 		var roleDoc role.Role
-		err = cur.Decode(&roleDoc)
+		err = curRoles.Decode(&roleDoc)
+		if err != nil {
+			logger.Log.Error().Err(err).Send()
+			return
+		}
+
 		roleOIDs = append(roleOIDs, roleDoc.UserID)
 	}
 
-	cur, err = mongo.Users.Find(ctx, bson.M{
+	curUsers, err := mongo.Users.Find(ctx, bson.M{
 		"_id": bson.M{
 			"$in": roleOIDs,
 		},
@@ -97,21 +108,27 @@ func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
 		logger.Log.Error().Err(err).Send()
 		return
 	}
-
-	var users []user.User
-	err = cur.All(ctx, &users)
-	if err != nil {
-		logger.Log.Error().Err(err).Send()
-		return
-	}
+	defer func() {
+		e := curUsers.Close(ctx)
+		if e != nil {
+			logger.Log.Error().Err(e).Send()
+		}
+	}()
 
 	res = &pbUser.GetAdminsResponse{}
-	for _, u := range users {
+	for curUsers.Next(ctx) {
+		var userDoc user.User
+		err = curUsers.Decode(&userDoc)
+		if err != nil {
+			logger.Log.Error().Err(err).Send()
+			return
+		}
+
 		res.Admins = append(res.Admins, &pbUser.ShortUser{
-			Id:        u.ID.Hex(),
-			FirstName: u.FirstName,
-			LastName:  u.LastName,
-			Photo:     u.Photo,
+			Id:        userDoc.ID.Hex(),
+			FirstName: userDoc.FirstName,
+			LastName:  userDoc.LastName,
+			Photo:     userDoc.Photo,
 		})
 	}
 	return

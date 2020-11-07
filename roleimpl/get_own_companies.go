@@ -30,16 +30,23 @@ func (*server) GetOwnCompanies(ctx context.Context, req *user.GetOwnCompaniesReq
 		logger.Log.Error().Err(err).Send()
 		return
 	}
+	defer func() {
+		e := cur.Close(ctx)
+		if e != nil {
+			logger.Log.Error().Err(e).Send()
+		}
+	}()
 
 	res = &user.GetOwnCompaniesResponse{}
 	for cur.Next(ctx) {
-		var roleItem role.Role
-		err = cur.Decode(&roleItem)
+		var roleDoc role.Role
+		err = cur.Decode(&roleDoc)
 		if err != nil {
 			logger.Log.Error().Err(err).Send()
 			return
 		}
-		res.CompanyIds = append(res.CompanyIds, roleItem.CompanyID.Hex())
+
+		res.CompanyIds = append(res.CompanyIds, roleDoc.CompanyID.Hex())
 	}
 	return
 }

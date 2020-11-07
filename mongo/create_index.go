@@ -11,12 +11,16 @@ import (
 func createIndex(db *m.Database) {
 	ctx := context.Background()
 
-	_, err := db.Collection(users).Indexes().CreateOne(ctx, m.IndexModel{
+	_, err := db.Collection(users).Indexes().CreateMany(ctx, []m.IndexModel{{
 		Keys: bson.M{
 			"v": 1,
 		},
 		Options: options.Index().SetUnique(true),
-	})
+	}, {
+		Keys: bson.M{
+			"t": 1,
+		},
+	}})
 	logger.Must(err)
 
 	_, err = db.Collection(roles).Indexes().CreateOne(ctx, m.IndexModel{
