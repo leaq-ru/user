@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/nnqq/scr-proto/codegen/go/user"
+	pbUser "github.com/nnqq/scr-proto/codegen/go/user"
 	"github.com/nnqq/scr-user/logger"
 	"github.com/nnqq/scr-user/md"
 	"github.com/nnqq/scr-user/mongo"
 	"github.com/nnqq/scr-user/role"
+	"github.com/nnqq/scr-user/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	m "go.mongodb.org/mongo-driver/mongo"
@@ -16,7 +17,7 @@ import (
 	"time"
 )
 
-func (*server) SetCompanyOwner(ctx context.Context, req *user.SetCompanyOwnerRequest) (
+func (*server) SetCompanyOwner(ctx context.Context, req *pbUser.SetCompanyOwnerRequest) (
 	res *empty.Empty,
 	err error,
 ) {
@@ -58,6 +59,18 @@ func (*server) SetCompanyOwner(ctx context.Context, req *user.SetCompanyOwnerReq
 	companyOID, err := primitive.ObjectIDFromHex(req.GetCompanyId())
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
+		return
+	}
+
+	err = mongo.Users.FindOne(ctx, user.User{
+		ID: userOID,
+	}).Err()
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+
+		if errors.Is(err, m.ErrNoDocuments) {
+			err = errors.New("user not found")
+		}
 		return
 	}
 

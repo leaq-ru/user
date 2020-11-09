@@ -13,6 +13,7 @@ type c struct {
 	Vk       vk
 	Service  service
 	LogLevel string `envconfig:"LOGLEVEL"`
+	Dev      dev
 }
 
 type host struct {
@@ -34,6 +35,10 @@ type vk struct {
 
 type service struct {
 	Parser string `envconfig:"SERVICE_PARSER"`
+}
+
+type dev struct {
+	BypassCompanyVerify bool `envconfig:"DEV_BYPASSCOMPANYVERIFY"`
 }
 
 var Env c

@@ -15,8 +15,8 @@ import (
 	"time"
 )
 
-func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
-	res *pbUser.GetAdminsResponse,
+func (*server) GetManagers(ctx context.Context, req *pbUser.GetManagersRequest) (
+	res *pbUser.GetManagersResponse,
 	err error,
 ) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -55,7 +55,7 @@ func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
 		return
 	}
 
-	auth, err := role.GrantGte(ctx, authUserOID, companyOID, role.Owner)
+	auth, err := role.GrantGte(ctx, authUserOID, companyOID, role.Admin)
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return
@@ -67,7 +67,6 @@ func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
 
 	curRoles, err := mongo.Roles.Find(ctx, role.Role{
 		CompanyID: companyOID,
-		Grant:     role.Admin,
 	}, options.Find().
 		SetSort(bson.M{
 			"u": -1,
@@ -85,7 +84,9 @@ func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
 		}
 	}()
 
-	var roleOIDs []primitive.ObjectID
+	type userOID = primitive.ObjectID
+	grants := map[userOID]role.Grant{}
+	var userOIDs []primitive.ObjectID
 	for curRoles.Next(ctx) {
 		var roleDoc role.Role
 		err = curRoles.Decode(&roleDoc)
@@ -94,16 +95,15 @@ func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
 			return
 		}
 
-		roleOIDs = append(roleOIDs, roleDoc.UserID)
+		grants[roleDoc.UserID] = roleDoc.Grant
+		userOIDs = append(userOIDs, roleDoc.UserID)
 	}
 
 	curUsers, err := mongo.Users.Find(ctx, bson.M{
 		"_id": bson.M{
-			"$in": roleOIDs,
+			"$in": userOIDs,
 		},
-	}, options.Find().SetSort(bson.M{
-		"_id": -1,
-	}))
+	})
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return
@@ -115,7 +115,7 @@ func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
 		}
 	}()
 
-	res = &pbUser.GetAdminsResponse{}
+	res = &pbUser.GetManagersResponse{}
 	for curUsers.Next(ctx) {
 		var userDoc user.User
 		err = curUsers.Decode(&userDoc)
@@ -124,11 +124,19 @@ func (*server) GetAdmins(ctx context.Context, req *pbUser.GetAdminsRequest) (
 			return
 		}
 
-		res.Admins = append(res.Admins, &pbUser.ShortUser{
+		grant, ok := grants[userDoc.ID]
+		if !ok {
+			err = errors.New("expected to get grant but nothing found")
+			logger.Log.Error().Str("userID", userDoc.ID.Hex()).Err(err).Send()
+			return
+		}
+
+		res.Managers = append(res.Managers, &pbUser.ManagerItem{
 			Id:        userDoc.ID.Hex(),
 			FirstName: userDoc.FirstName,
 			LastName:  userDoc.LastName,
 			Photo:     userDoc.Photo,
+			Grant:     pbUser.Grant(grant),
 		})
 	}
 	return

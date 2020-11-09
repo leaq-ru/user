@@ -7,6 +7,7 @@ import (
 	"github.com/nnqq/scr-user/mongo"
 	"github.com/nnqq/scr-user/role"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
@@ -18,8 +19,14 @@ func (*server) GetOwnCompanies(ctx context.Context, req *user.GetOwnCompaniesReq
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	userOID, err := primitive.ObjectIDFromHex(req.GetUserId())
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+		return
+	}
+
 	cur, err := mongo.Roles.Find(ctx, bson.M{
-		"u": req.GetUserId(),
+		"u": userOID,
 	}, options.Find().
 		SetSort(bson.M{
 			"c": -1,

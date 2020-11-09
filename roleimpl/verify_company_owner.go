@@ -9,11 +9,12 @@ import (
 	"github.com/nnqq/scr-proto/codegen/go/parser"
 	"github.com/nnqq/scr-proto/codegen/go/user"
 	"github.com/nnqq/scr-user/call"
+	"github.com/nnqq/scr-user/company_verify"
+	"github.com/nnqq/scr-user/config"
 	"github.com/nnqq/scr-user/fasthttpclient"
 	"github.com/nnqq/scr-user/logger"
 	"github.com/nnqq/scr-user/md"
 	"github.com/nnqq/scr-user/mongo"
-	"github.com/nnqq/scr-user/orgverify"
 	"github.com/nnqq/scr-user/role"
 	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -47,19 +48,17 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 		return
 	}
 
-	compURL, err := url.Parse(req.GetCompanyUrl())
+	compURL, err := url.Parse("http://" + req.GetCompanyUrl())
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return
 	}
 
-	urlToVerify := "http://" + compURL.Host
-
 	var eg errgroup.Group
 	var compOID primitive.ObjectID
 	eg.Go(func() (e error) {
 		comp, e := call.Company.GetBy(ctx, &parser.GetByRequest{
-			Url: urlToVerify,
+			Url: compURL.String(),
 		})
 		if e != nil {
 			return
@@ -71,7 +70,7 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 
 	var actualMetaContent string
 	eg.Go(func() (e error) {
-		actualMetaContent, e = extractMeta(urlToVerify)
+		actualMetaContent, e = extractMeta(compURL.String())
 		return
 	})
 	err = eg.Wait()
@@ -80,8 +79,8 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 		return
 	}
 
-	var expectedVerify orgverify.OrgVerify
-	err = mongo.OrgVerifyPending.FindOne(ctx, orgverify.OrgVerify{
+	var expectedVerify company_verify.CompanyVerify
+	err = mongo.CompanyVerifyPending.FindOne(ctx, company_verify.CompanyVerify{
 		UserID:    authUserOID,
 		CompanyID: compOID,
 	}).Decode(&expectedVerify)
@@ -90,7 +89,7 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 		return
 	}
 
-	if expectedVerify.MetaContent != actualMetaContent {
+	if !config.Env.Dev.BypassCompanyVerify && expectedVerify.MetaContent != actualMetaContent {
 		err = errors.New("invalid meta content")
 		logger.Log.Error().Str("compID", compOID.Hex()).Err(err).Send()
 		return
@@ -106,14 +105,14 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 	_, err = sess.WithTransaction(ctx, func(sc m.SessionContext) (_ interface{}, errTx error) {
 		var egTx errgroup.Group
 		egTx.Go(func() error {
-			_, e := mongo.OrgVerifyPending.DeleteMany(sc, orgverify.OrgVerify{
+			_, e := mongo.CompanyVerifyPending.DeleteMany(sc, company_verify.CompanyVerify{
 				CompanyID: compOID,
 			})
 			return e
 		})
 
 		egTx.Go(func() error {
-			_, e := mongo.OrgVerifySuccess.InsertOne(sc, orgverify.OrgVerify{
+			_, e := mongo.CompanyVerifySuccess.InsertOne(sc, company_verify.CompanyVerify{
 				UserID:      authUserOID,
 				CompanyID:   compOID,
 				MetaContent: actualMetaContent,
@@ -161,7 +160,7 @@ func extractMeta(urlToVerify string) (actualMetaContent string, err error) {
 	}
 
 	dom.Find("meta").EachWithBreak(func(i int, s *goquery.Selection) bool {
-		if name, _ := s.Attr("name"); name == orgverify.MetaName {
+		if name, _ := s.Attr("name"); name == company_verify.MetaName {
 			content, ok := s.Attr("content")
 			if ok {
 				actualMetaContent = content

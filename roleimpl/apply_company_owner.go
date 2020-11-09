@@ -7,15 +7,16 @@ import (
 	"github.com/nnqq/scr-proto/codegen/go/parser"
 	"github.com/nnqq/scr-proto/codegen/go/user"
 	"github.com/nnqq/scr-user/call"
+	"github.com/nnqq/scr-user/company_verify"
 	"github.com/nnqq/scr-user/logger"
 	"github.com/nnqq/scr-user/md"
 	"github.com/nnqq/scr-user/mongo"
-	"github.com/nnqq/scr-user/orgverify"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	m "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -32,6 +33,12 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		return
 	}
 
+	if req.GetCompanyUrl() == "leaq.ru" {
+		err = errors.New("url invalid")
+		logger.Log.Error().Err(err).Send()
+		return
+	}
+
 	authUserID, err := md.GetUserID(ctx)
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
@@ -43,18 +50,38 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		return
 	}
 
-	compURL, err := url.Parse(req.GetCompanyUrl())
+	compURL, err := url.Parse("http://" + req.GetCompanyUrl())
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return
 	}
 
 	comp, err := call.Company.GetBy(ctx, &parser.GetByRequest{
-		Url: "http://" + compURL.Host,
+		Url: compURL.String(),
 	})
 	if err != nil {
-		logger.Log.Error().Err(err).Send()
-		return
+		if strings.Contains(err.Error(), m.ErrNoDocuments.Error()) {
+			_, errReindex := call.Company.Reindex(ctx, &parser.ReindexRequest{
+				Url: compURL.Host,
+			})
+			if errReindex != nil {
+				err = errReindex
+				logger.Log.Error().Err(err).Send()
+				return
+			}
+
+			comp, err = call.Company.GetBy(ctx, &parser.GetByRequest{
+				Url: compURL.String(),
+			})
+			if err != nil {
+				logger.Log.Error().Err(err).Send()
+				err = errors.New("company not found")
+				return
+			}
+		} else {
+			logger.Log.Error().Err(err).Send()
+			return
+		}
 	}
 	compOID, err := primitive.ObjectIDFromHex(comp.Id)
 	if err != nil {
@@ -62,7 +89,7 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		return
 	}
 
-	findErr := mongo.OrgVerifySuccess.FindOne(ctx, orgverify.OrgVerify{
+	findErr := mongo.CompanyVerifySuccess.FindOne(ctx, company_verify.CompanyVerify{
 		CompanyID: compOID,
 	}).Err()
 	if findErr == nil {
@@ -76,11 +103,11 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		return
 	}
 
-	_, err = mongo.OrgVerifyPending.UpdateOne(ctx, orgverify.OrgVerify{
+	_, err = mongo.CompanyVerifyPending.UpdateOne(ctx, company_verify.CompanyVerify{
 		UserID:    authUserOID,
 		CompanyID: compOID,
 	}, bson.M{
-		"$set": orgverify.OrgVerify{
+		"$set": company_verify.CompanyVerify{
 			MetaContent: uuid.New().String(),
 			CreatedAt:   time.Now().UTC(),
 		},
@@ -90,19 +117,19 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		return
 	}
 
-	var ov orgverify.OrgVerify
-	err = mongo.OrgVerifyPending.FindOne(ctx, orgverify.OrgVerify{
+	var cv company_verify.CompanyVerify
+	err = mongo.CompanyVerifyPending.FindOne(ctx, company_verify.CompanyVerify{
 		UserID:    authUserOID,
 		CompanyID: compOID,
-	}).Decode(&ov)
+	}).Decode(&cv)
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return
 	}
 
 	res = &user.ApplyCompanyOwnerResponse{
-		MetaName:    orgverify.MetaName,
-		MetaContent: ov.MetaContent,
+		MetaName:    company_verify.MetaName,
+		MetaContent: cv.MetaContent,
 	}
 	return
 }

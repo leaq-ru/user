@@ -4,17 +4,19 @@ import (
 	"context"
 	"errors"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/nnqq/scr-proto/codegen/go/user"
+	pbUser "github.com/nnqq/scr-proto/codegen/go/user"
 	"github.com/nnqq/scr-user/logger"
 	"github.com/nnqq/scr-user/md"
 	"github.com/nnqq/scr-user/mongo"
 	"github.com/nnqq/scr-user/role"
+	"github.com/nnqq/scr-user/user"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	m "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
-func (*server) AddCompanyAdmin(ctx context.Context, req *user.AddCompanyAdminRequest) (
+func (*server) AddCompanyAdmin(ctx context.Context, req *pbUser.AddCompanyAdminRequest) (
 	res *empty.Empty,
 	err error,
 ) {
@@ -56,6 +58,18 @@ func (*server) AddCompanyAdmin(ctx context.Context, req *user.AddCompanyAdminReq
 	companyOID, err := primitive.ObjectIDFromHex(req.GetCompanyId())
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
+		return
+	}
+
+	err = mongo.Users.FindOne(ctx, user.User{
+		ID: userOID,
+	}).Err()
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+
+		if errors.Is(err, m.ErrNoDocuments) {
+			err = errors.New("user not found")
+		}
 		return
 	}
 

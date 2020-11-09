@@ -5,9 +5,10 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 type Grant uint8
 
 const (
-	_ Grant = iota
-	Owner
-	Admin
+	_     Grant = iota
+	Root        // me
+	Owner       // company owner
+	Admin       // company admin
 )
 
 type Role struct {

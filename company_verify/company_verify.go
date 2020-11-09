@@ -1,4 +1,4 @@
-package orgverify
+package company_verify
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -7,7 +7,7 @@ import (
 
 const MetaName = "leaq-verification"
 
-type OrgVerify struct {
+type CompanyVerify struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	UserID      primitive.ObjectID `bson:"u,omitempty"`
 	CompanyID   primitive.ObjectID `bson:"c,omitempty"`

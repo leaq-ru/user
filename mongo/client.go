@@ -13,18 +13,18 @@ import (
 )
 
 var (
-	Client           *m.Client
-	Users            *m.Collection
-	Roles            *m.Collection
-	OrgVerifyPending *m.Collection
-	OrgVerifySuccess *m.Collection
+	Client               *m.Client
+	Users                *m.Collection
+	Roles                *m.Collection
+	CompanyVerifyPending *m.Collection
+	CompanyVerifySuccess *m.Collection
 )
 
 const (
-	users            = "users"
-	roles            = "roles"
-	orgVerifyPending = "org_verify_pending"
-	orgVerifySuccess = "org_verify_success"
+	users                = "users"
+	roles                = "roles"
+	companyVerifyPending = "company_verify_pending"
+	companyVerifySuccess = "company_verify_success"
 )
 
 func init() {
@@ -51,6 +51,6 @@ func init() {
 	Client = db.Client()
 	Users = db.Collection(users)
 	Roles = db.Collection(roles)
-	OrgVerifyPending = db.Collection(orgVerifyPending)
-	OrgVerifySuccess = db.Collection(orgVerifySuccess)
+	CompanyVerifyPending = db.Collection(companyVerifyPending)
+	CompanyVerifySuccess = db.Collection(companyVerifySuccess)
 }

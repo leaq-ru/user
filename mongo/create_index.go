@@ -39,7 +39,7 @@ func createIndex(db *m.Database) {
 	logger.Must(err)
 
 	const hours24InSeconds = 86400
-	_, err = db.Collection(orgVerifyPending).Indexes().CreateMany(ctx, []m.IndexModel{{
+	_, err = db.Collection(companyVerifyPending).Indexes().CreateMany(ctx, []m.IndexModel{{
 		Keys: bson.D{{
 			Key:   "c",
 			Value: 1,
@@ -56,7 +56,7 @@ func createIndex(db *m.Database) {
 	}})
 	logger.Must(err)
 
-	_, err = db.Collection(orgVerifySuccess).Indexes().CreateOne(ctx, m.IndexModel{
+	_, err = db.Collection(companyVerifySuccess).Indexes().CreateOne(ctx, m.IndexModel{
 		Keys: bson.M{
 			"c": 1,
 		},
