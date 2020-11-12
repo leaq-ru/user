@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	m "go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/sync/errgroup"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
@@ -99,29 +99,27 @@ func (*server) SetCompanyOwner(ctx context.Context, req *pbUser.SetCompanyOwnerR
 
 	sc := m.NewSessionContext(ctx, sess)
 
-	var egTx errgroup.Group
-	egTx.Go(func() (e error) {
-		_, e = mongo.Roles.DeleteOne(sc, role.Role{
-			UserID:    userOID,
-			CompanyID: companyOID,
-			Grant:     role.Admin,
-		})
+	_, err = mongo.Roles.UpdateOne(sc, role.Role{
+		UserID:    userOID,
+		CompanyID: companyOID,
+	}, bson.M{
+		"$set": role.Role{
+			Grant: role.Owner,
+		},
+	}, options.Update().SetUpsert(true))
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
 		return
-	})
+	}
 
-	egTx.Go(func() (e error) {
-		_, e = mongo.Roles.UpdateOne(sc, role.Role{
-			UserID:    authUserOID,
-			CompanyID: companyOID,
-			Grant:     role.Owner,
-		}, bson.M{
-			"$set": role.Role{
-				UserID: userOID,
-			},
-		})
-		return
+	_, err = mongo.Roles.UpdateOne(sc, role.Role{
+		UserID:    authUserOID,
+		CompanyID: companyOID,
+	}, bson.M{
+		"$set": role.Role{
+			Grant: role.Admin,
+		},
 	})
-	err = egTx.Wait()
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return
