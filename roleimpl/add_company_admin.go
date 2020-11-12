@@ -3,6 +3,7 @@ package roleimpl
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
 	pbUser "github.com/nnqq/scr-proto/codegen/go/user"
 	"github.com/nnqq/scr-user/logger"
@@ -83,17 +84,18 @@ func (*server) AddCompanyAdmin(ctx context.Context, req *pbUser.AddCompanyAdminR
 		return
 	}
 
+	const maxAdmins = 50
 	adminsCount, err := mongo.Roles.CountDocuments(ctx, role.Role{
 		CompanyID: companyOID,
 		Grant:     role.Admin,
-	}, options.Count().SetLimit(100))
+	}, options.Count().SetLimit(maxAdmins))
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return
 	}
 
-	if adminsCount >= 100 {
-		err = errors.New("max 100 admins")
+	if adminsCount >= maxAdmins {
+		err = errors.New(fmt.Sprintf("max %v admins", maxAdmins))
 		return
 	}
 

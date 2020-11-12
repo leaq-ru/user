@@ -24,7 +24,7 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 	res *user.ApplyCompanyOwnerResponse,
 	err error,
 ) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	if req.GetCompanyUrl() == "" {

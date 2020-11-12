@@ -91,32 +91,43 @@ func (*server) SetCompanyOwner(ctx context.Context, req *pbUser.SetCompanyOwnerR
 	}
 	defer sess.EndSession(ctx)
 
-	_, err = sess.WithTransaction(ctx, func(sc m.SessionContext) (_ interface{}, errTx error) {
-		var egTx errgroup.Group
-		egTx.Go(func() (e error) {
-			_, e = mongo.Roles.DeleteOne(sc, role.Role{
-				UserID:    userOID,
-				CompanyID: companyOID,
-				Grant:     role.Admin,
-			})
-			return
-		})
+	err = sess.StartTransaction()
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+		return
+	}
 
-		egTx.Go(func() (e error) {
-			_, e = mongo.Roles.UpdateOne(sc, role.Role{
-				UserID:    authUserOID,
-				CompanyID: companyOID,
-				Grant:     role.Owner,
-			}, bson.M{
-				"$set": role.Role{
-					UserID: userOID,
-				},
-			})
-			return
+	sc := m.NewSessionContext(ctx, sess)
+
+	var egTx errgroup.Group
+	egTx.Go(func() (e error) {
+		_, e = mongo.Roles.DeleteOne(sc, role.Role{
+			UserID:    userOID,
+			CompanyID: companyOID,
+			Grant:     role.Admin,
 		})
-		errTx = egTx.Wait()
 		return
 	})
+
+	egTx.Go(func() (e error) {
+		_, e = mongo.Roles.UpdateOne(sc, role.Role{
+			UserID:    authUserOID,
+			CompanyID: companyOID,
+			Grant:     role.Owner,
+		}, bson.M{
+			"$set": role.Role{
+				UserID: userOID,
+			},
+		})
+		return
+	})
+	err = egTx.Wait()
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+		return
+	}
+
+	err = sess.CommitTransaction(sc)
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return

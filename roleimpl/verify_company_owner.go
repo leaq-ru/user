@@ -102,36 +102,46 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 	}
 	defer sess.EndSession(ctx)
 
-	_, err = sess.WithTransaction(ctx, func(sc m.SessionContext) (_ interface{}, errTx error) {
-		var egTx errgroup.Group
-		egTx.Go(func() error {
-			_, e := mongo.CompanyVerifyPending.DeleteMany(sc, company_verify.CompanyVerify{
-				CompanyID: compOID,
-			})
-			return e
-		})
-
-		egTx.Go(func() error {
-			_, e := mongo.CompanyVerifySuccess.InsertOne(sc, company_verify.CompanyVerify{
-				UserID:      authUserOID,
-				CompanyID:   compOID,
-				MetaContent: actualMetaContent,
-				CreatedAt:   time.Now().UTC(),
-			})
-			return e
-		})
-
-		egTx.Go(func() error {
-			_, e := mongo.Roles.InsertOne(sc, role.Role{
-				UserID:    authUserOID,
-				CompanyID: compOID,
-				Grant:     role.Owner,
-			})
-			return e
-		})
-		errTx = egTx.Wait()
+	err = sess.StartTransaction()
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
 		return
+	}
+
+	sc := m.NewSessionContext(ctx, sess)
+	var egTx errgroup.Group
+	egTx.Go(func() error {
+		_, e := mongo.CompanyVerifyPending.DeleteMany(sc, company_verify.CompanyVerify{
+			CompanyID: compOID,
+		})
+		return e
 	})
+
+	egTx.Go(func() error {
+		_, e := mongo.CompanyVerifySuccess.InsertOne(sc, company_verify.CompanyVerify{
+			UserID:      authUserOID,
+			CompanyID:   compOID,
+			MetaContent: actualMetaContent,
+			CreatedAt:   time.Now().UTC(),
+		})
+		return e
+	})
+
+	egTx.Go(func() error {
+		_, e := mongo.Roles.InsertOne(sc, role.Role{
+			UserID:    authUserOID,
+			CompanyID: compOID,
+			Grant:     role.Owner,
+		})
+		return e
+	})
+	err = egTx.Wait()
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
+		return
+	}
+
+	err = sess.CommitTransaction(sc)
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return
