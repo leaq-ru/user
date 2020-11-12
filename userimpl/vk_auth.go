@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	pbUser "github.com/nnqq/scr-proto/codegen/go/user"
 	"github.com/nnqq/scr-user/config"
+	"github.com/nnqq/scr-user/fasthttpclient"
 	"github.com/nnqq/scr-user/logger"
 	"github.com/nnqq/scr-user/mongo"
 	"github.com/nnqq/scr-user/user"
@@ -23,17 +24,6 @@ type resVkOAuth struct {
 	VkID        uint32 `json:"user_id"`
 	AccessToken string `json:"access_token"`
 	Email       string `json:"email"`
-}
-
-func makeSafeFastHTTPClient() *fasthttp.Client {
-	return &fasthttp.Client{
-		NoDefaultUserAgentHeader: true,
-		ReadTimeout:              5 * time.Second,
-		WriteTimeout:             5 * time.Second,
-		MaxConnWaitTimeout:       5 * time.Second,
-		MaxResponseBodySize:      4 * 1024 * 1024,
-		ReadBufferSize:           4 * 1024 * 1024,
-	}
 }
 
 func makeRedirectURI() string {
@@ -79,7 +69,7 @@ func (*server) VkAuth(ctx context.Context, req *pbUser.VkAuthRequest) (res *pbUs
 	resVk := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resVk)
 
-	err = makeSafeFastHTTPClient().Do(reqVk, resVk)
+	err = fasthttpclient.New().Do(reqVk, resVk)
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 		return

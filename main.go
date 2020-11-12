@@ -5,6 +5,7 @@ import (
 	"github.com/nnqq/scr-proto/codegen/go/user"
 	"github.com/nnqq/scr-user/config"
 	"github.com/nnqq/scr-user/logger"
+	"github.com/nnqq/scr-user/roleimpl"
 	"github.com/nnqq/scr-user/userimpl"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -19,6 +20,7 @@ func main() {
 
 	grpc_health_v1.RegisterHealthServer(srv, health.NewServer())
 	user.RegisterUserServer(srv, userimpl.NewServer())
+	user.RegisterRoleServer(srv, roleimpl.NewServer())
 
 	lis, err := net.Listen("tcp", strings.Join([]string{
 		"0.0.0.0",

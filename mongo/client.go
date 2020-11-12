@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/nnqq/scr-user/config"
 	"github.com/nnqq/scr-user/logger"
-	"go.mongodb.org/mongo-driver/mongo"
+	m "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -12,16 +12,27 @@ import (
 	"time"
 )
 
-var Users *mongo.Collection
+var (
+	Client               *m.Client
+	Users                *m.Collection
+	Roles                *m.Collection
+	CompanyVerifyPending *m.Collection
+	CompanyVerifySuccess *m.Collection
+)
 
-const users = "users"
+const (
+	users                = "users"
+	roles                = "roles"
+	companyVerifyPending = "company_verify_pending"
+	companyVerifySuccess = "company_verify_success"
+)
 
 func init() {
 	const timeout = 10
 	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().
+	client, err := m.Connect(ctx, options.Client().
 		SetWriteConcern(writeconcern.New(
 			writeconcern.WMajority(),
 			writeconcern.J(true),
@@ -37,5 +48,9 @@ func init() {
 	db := client.Database(config.ServiceName)
 	createIndex(db)
 
+	Client = db.Client()
 	Users = db.Collection(users)
+	Roles = db.Collection(roles)
+	CompanyVerifyPending = db.Collection(companyVerifyPending)
+	CompanyVerifySuccess = db.Collection(companyVerifySuccess)
 }
