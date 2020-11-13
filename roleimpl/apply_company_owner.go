@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	m "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"net/url"
+	"golang.org/x/net/idna"
 	"strings"
 	"time"
 )
@@ -50,28 +50,30 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		return
 	}
 
-	compURL, err := url.Parse("http://" + req.GetCompanyUrl())
-	if err != nil {
-		logger.Log.Error().Err(err).Send()
-		return
-	}
+	compURL := "http://" + req.GetCompanyUrl()
 
 	comp, err := call.Company.GetBy(ctx, &parser.GetByRequest{
-		Url: compURL.String(),
+		Url: compURL,
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), m.ErrNoDocuments.Error()) {
-			_, errReindex := call.Company.Reindex(ctx, &parser.ReindexRequest{
-				Url: compURL.Host,
+			var urlToReindex string
+			urlToReindex, err = ensureRfHostIsPunycode(req.GetCompanyUrl())
+			if err != nil {
+				logger.Log.Error().Err(err).Send()
+				return
+			}
+
+			_, err = call.Company.Reindex(ctx, &parser.ReindexRequest{
+				Url: urlToReindex,
 			})
-			if errReindex != nil {
-				err = errReindex
+			if err != nil {
 				logger.Log.Error().Err(err).Send()
 				return
 			}
 
 			comp, err = call.Company.GetBy(ctx, &parser.GetByRequest{
-				Url: compURL.String(),
+				Url: compURL,
 			})
 			if err != nil {
 				logger.Log.Error().Err(err).Send()
@@ -130,6 +132,19 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 	res = &user.ApplyCompanyOwnerResponse{
 		MetaName:    company_verify.MetaName,
 		MetaContent: cv.MetaContent,
+	}
+	return
+}
+
+func ensureRfHostIsPunycode(rawURL string) (res string, err error) {
+	if !strings.HasSuffix(rawURL, ".рф") {
+		res = rawURL
+		return
+	}
+
+	res, err = idna.New().ToASCII(rawURL)
+	if err != nil {
+		logger.Log.Error().Err(err).Send()
 	}
 	return
 }

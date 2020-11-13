@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	m "go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/sync/errgroup"
-	"net/url"
 	"time"
 )
 
@@ -48,17 +47,13 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 		return
 	}
 
-	compURL, err := url.Parse("http://" + req.GetCompanyUrl())
-	if err != nil {
-		logger.Log.Error().Err(err).Send()
-		return
-	}
+	compURL := "http://" + req.GetCompanyUrl()
 
 	var eg errgroup.Group
 	var compOID primitive.ObjectID
 	eg.Go(func() (e error) {
 		comp, e := call.Company.GetBy(ctx, &parser.GetByRequest{
-			Url: compURL.String(),
+			Url: compURL,
 		})
 		if e != nil {
 			return
@@ -70,7 +65,7 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 
 	var actualMetaContent string
 	eg.Go(func() (e error) {
-		actualMetaContent, e = extractMeta(compURL.String())
+		actualMetaContent, e = extractMeta(req.GetCompanyUrl())
 		return
 	})
 	err = eg.Wait()
@@ -149,7 +144,13 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 	return
 }
 
-func extractMeta(urlToVerify string) (actualMetaContent string, err error) {
+func extractMeta(rawHost string) (actualMetaContent string, err error) {
+	host, err := ensureRfHostIsPunycode(rawHost)
+	if err != nil {
+		return
+	}
+	urlToVerify := "http://" + host
+
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req)
 	req.SetRequestURI(urlToVerify)
@@ -162,8 +163,8 @@ func extractMeta(urlToVerify string) (actualMetaContent string, err error) {
 		return
 	}
 
-	dom, e := goquery.NewDocumentFromReader(bytes.NewReader(res.Body()))
-	if e != nil {
+	dom, err := goquery.NewDocumentFromReader(bytes.NewReader(res.Body()))
+	if err != nil {
 		return
 	}
 
