@@ -163,7 +163,12 @@ func extractMeta(rawHost string) (actualMetaContent string, err error) {
 		return
 	}
 
-	dom, err := goquery.NewDocumentFromReader(bytes.NewReader(res.Body()))
+	body, err := getBody(res)
+	if err != nil {
+		return
+	}
+
+	dom, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
 		return
 	}
@@ -178,5 +183,28 @@ func extractMeta(rawHost string) (actualMetaContent string, err error) {
 		}
 		return true
 	})
+	return
+}
+
+func getBody(res *fasthttp.Response) (body []byte, err error) {
+	switch string(res.Header.Peek("Content-Encoding")) {
+	case "gzip":
+		body, err = res.BodyGunzip()
+		if err != nil {
+			logger.Log.Error().Err(err).Send()
+		}
+	case "deflate":
+		body, err = res.BodyInflate()
+		if err != nil {
+			logger.Log.Error().Err(err).Send()
+		}
+	case "br":
+		body, err = res.BodyUnbrotli()
+		if err != nil {
+			logger.Log.Error().Err(err).Send()
+		}
+	default:
+		body = res.Body()
+	}
 	return
 }
