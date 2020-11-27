@@ -119,14 +119,3 @@ spec:
       protocol: TCP
   selector:
     app: user
-
----
-apiVersion: policy/v1beta1
-kind: PodDisruptionBudget
-metadata:
-  name: user
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app: user
