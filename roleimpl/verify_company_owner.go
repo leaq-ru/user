@@ -168,7 +168,10 @@ func extractMeta(rawHost string) (actualMetaContent string, err error) {
 		return
 	}
 
-	dom, err := goquery.NewDocumentFromReader(bytes.NewReader(res.Body()))
+	body := res.Body()
+	logger.Log.Debug().Str("body", string(body)).Msg("http body")
+
+	dom, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
 		return
 	}
