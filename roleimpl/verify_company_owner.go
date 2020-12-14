@@ -86,7 +86,12 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 
 	if !config.Env.Dev.BypassCompanyVerify && expectedVerify.MetaContent != actualMetaContent {
 		err = errors.New("invalid meta content")
-		logger.Log.Error().Str("compID", compOID.Hex()).Err(err).Send()
+		logger.Log.Error().
+			Str("compID", compOID.Hex()).
+			Str("expectedVerify.MetaContent", expectedVerify.MetaContent).
+			Str("actualMetaContent", actualMetaContent).
+			Err(err).
+			Send()
 		return
 	}
 
