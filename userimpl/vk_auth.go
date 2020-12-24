@@ -28,7 +28,7 @@ type resVkOAuth struct {
 
 func makeRedirectURI() string {
 	var scheme string
-	if config.Env.Host.URL == "leaq.local" {
+	if config.Env.Host.URL == "leaq.local:1100" {
 		scheme = "http://"
 	} else {
 		scheme = "https://"
