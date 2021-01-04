@@ -36,6 +36,8 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 		return
 	}
 
+	u := removeURLPrefixes(req.GetCompanyUrl())
+
 	authUserID, err := md.GetUserID(ctx)
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
@@ -47,7 +49,7 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 		return
 	}
 
-	compURL := "http://" + req.GetCompanyUrl()
+	compURL := "http://" + u
 
 	var eg errgroup.Group
 	var compOID primitive.ObjectID
@@ -65,7 +67,7 @@ func (*server) VerifyCompanyOwner(ctx context.Context, req *user.VerifyCompanyOw
 
 	var actualMetaContent string
 	eg.Go(func() (e error) {
-		actualMetaContent, e = extractMeta(req.GetCompanyUrl())
+		actualMetaContent, e = extractMeta(u)
 		return
 	})
 	err = eg.Wait()

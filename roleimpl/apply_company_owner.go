@@ -33,9 +33,7 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		return
 	}
 
-	u := strings.TrimPrefix(req.GetCompanyUrl(), "https://")
-	u = strings.TrimPrefix(u, "http://")
-	u = strings.TrimPrefix(u, "www.")
+	u := removeURLPrefixes(req.GetCompanyUrl())
 
 	if u == "leaq.ru" {
 		err = errors.New("url invalid")
@@ -150,5 +148,12 @@ func ensureRfHostIsPunycode(rawURL string) (res string, err error) {
 	if err != nil {
 		logger.Log.Error().Err(err).Send()
 	}
+	return
+}
+
+func removeURLPrefixes(inURL string) (outURL string) {
+	outURL = strings.TrimPrefix(inURL, "https://")
+	outURL = strings.TrimPrefix(outURL, "http://")
+	outURL = strings.TrimPrefix(outURL, "www.")
 	return
 }
