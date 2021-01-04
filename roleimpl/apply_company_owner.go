@@ -33,7 +33,11 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		return
 	}
 
-	if req.GetCompanyUrl() == "leaq.ru" {
+	u := strings.TrimPrefix(req.GetCompanyUrl(), "https://")
+	u = strings.TrimPrefix(u, "http://")
+	u = strings.TrimPrefix(u, "www.")
+
+	if u == "leaq.ru" {
 		err = errors.New("url invalid")
 		logger.Log.Error().Err(err).Send()
 		return
@@ -50,7 +54,7 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		return
 	}
 
-	compURL := "http://" + req.GetCompanyUrl()
+	compURL := "http://" + u
 
 	comp, err := call.Company.GetBy(ctx, &parser.GetByRequest{
 		Url: compURL,
@@ -58,7 +62,7 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 	if err != nil {
 		if strings.Contains(err.Error(), m.ErrNoDocuments.Error()) {
 			var urlToReindex string
-			urlToReindex, err = ensureRfHostIsPunycode(req.GetCompanyUrl())
+			urlToReindex, err = ensureRfHostIsPunycode(u)
 			if err != nil {
 				logger.Log.Error().Err(err).Send()
 				return
