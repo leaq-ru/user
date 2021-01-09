@@ -78,6 +78,16 @@ spec:
                 secretKeyRef:
                   key: appsecretkey
                   name: vk
+            - name: YANDEX_APPID
+              valueFrom:
+                configMapKeyRef:
+                  key: appid
+                  name: yandex
+            - name: YANDEX_APPPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: apppassword
+                  name: yandex
             - name: SERVICE_PARSER
               valueFrom:
                 configMapKeyRef:

@@ -20,33 +20,12 @@ import (
 	"time"
 )
 
-type resVkOAuth struct {
-	VkID        uint32 `json:"user_id"`
-	AccessToken string `json:"access_token"`
-	Email       string `json:"email"`
-}
-
-func makeRedirectURI() string {
-	var scheme string
-	if config.Env.Host.URL == "leaq.local:1100" {
-		scheme = "http://"
-	} else {
-		scheme = "https://"
-	}
-
-	return strings.Join([]string{
-		scheme,
-		config.Env.Host.URL,
-		"/vk-auth",
-	}, "")
-}
-
 func (*server) VkAuth(ctx context.Context, req *pbUser.VkAuthRequest) (res *pbUser.SelfUser, err error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	if req.GetCode() == "" {
-		err = errors.New("code required")
+		err = ErrCodeRequired
 		return
 	}
 
@@ -138,4 +117,25 @@ func (*server) VkAuth(ctx context.Context, req *pbUser.VkAuthRequest) (res *pbUs
 		PhotoRec:  dbUser.PhotoRec,
 	}
 	return
+}
+
+type resVkOAuth struct {
+	VkID        uint32 `json:"user_id"`
+	AccessToken string `json:"access_token"`
+	Email       string `json:"email"`
+}
+
+func makeRedirectURI() string {
+	var scheme string
+	if config.Env.Host.URL == "leaq.local:1100" {
+		scheme = "http://"
+	} else {
+		scheme = "https://"
+	}
+
+	return strings.Join([]string{
+		scheme,
+		config.Env.Host.URL,
+		"/vk-auth",
+	}, "")
 }

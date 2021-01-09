@@ -15,7 +15,24 @@ func createIndex(db *m.Database) {
 		Keys: bson.M{
 			"v": 1,
 		},
-		Options: options.Index().SetUnique(true),
+		Options: options.Index().
+			SetUnique(true).
+			SetPartialFilterExpression(bson.M{
+				"v": bson.M{
+					"$exists": true,
+				},
+			}),
+	}, {
+		Keys: bson.M{
+			"y": 1,
+		},
+		Options: options.Index().
+			SetUnique(true).
+			SetPartialFilterExpression(bson.M{
+				"y": bson.M{
+					"$exists": true,
+				},
+			}),
 	}, {
 		Keys: bson.M{
 			"t": 1,

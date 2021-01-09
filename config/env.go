@@ -11,6 +11,7 @@ type c struct {
 	Grpc     grpc
 	MongoDB  mongodb
 	Vk       vk
+	Yandex   yandex
 	Service  service
 	LogLevel string `envconfig:"LOGLEVEL"`
 	Dev      dev
@@ -31,6 +32,11 @@ type mongodb struct {
 type vk struct {
 	AppID        string `envconfig:"VK_APPID"`
 	AppSecretKey string `envconfig:"VK_APPSECRETKEY"`
+}
+
+type yandex struct {
+	AppID       string `envconfig:"YANDEX_APPID"`
+	AppPassword string `envconfig:"YANDEX_APPPASSWORD"`
 }
 
 type service struct {
