@@ -111,7 +111,7 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		UserID:    authUserOID,
 		CompanyID: compOID,
 	}, bson.M{
-		"$set": company_verify.CompanyVerify{
+		"$setOnInsert": company_verify.CompanyVerify{
 			MetaContent: uuid.New().String(),
 			CreatedAt:   time.Now().UTC(),
 		},

@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	m "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"time"
 )
 
 func createIndex(db *m.Database) {
@@ -55,7 +56,6 @@ func createIndex(db *m.Database) {
 	})
 	logger.Must(err)
 
-	const hours24InSeconds = 86400
 	_, err = db.Collection(companyVerifyPending).Indexes().CreateMany(ctx, []m.IndexModel{{
 		Keys: bson.D{{
 			Key:   "c",
@@ -69,7 +69,7 @@ func createIndex(db *m.Database) {
 		Keys: bson.M{
 			"ca": 1,
 		},
-		Options: options.Index().SetExpireAfterSeconds(hours24InSeconds),
+		Options: options.Index().SetExpireAfterSeconds(int32((72 * time.Hour).Seconds())),
 	}})
 	logger.Must(err)
 
