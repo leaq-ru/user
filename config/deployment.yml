@@ -16,7 +16,7 @@ spec:
       annotations:
         linkerd.io/inject: enabled
         config.linkerd.io/proxy-cpu-request: 1m
-        config.linkerd.io/proxy-memory-request: 10Mi
+        config.linkerd.io/proxy-memory-request: 7Mi
     spec:
       imagePullSecrets:
         - name: ghcr
@@ -41,8 +41,8 @@ spec:
               protocol: TCP
           resources:
             requests:
-              cpu: 15m
-              memory: 20Mi
+              cpu: 5m
+              memory: 47Mi
             limits:
               cpu: "1"
               memory: 1Gi
@@ -89,26 +89,6 @@ spec:
                   name: service
             - name: LOGLEVEL
               value: error
-
-#---
-#apiVersion: autoscaling/v2beta2
-#kind: HorizontalPodAutoscaler
-#metadata:
-#  name: user
-#spec:
-#  scaleTargetRef:
-#    apiVersion: apps/v1
-#    kind: Deployment
-#    name: user
-#  minReplicas: 1
-#  maxReplicas: 5
-#  metrics:
-#    - type: Resource
-#      resource:
-#        name: cpu
-#        target:
-#          type: Utilization
-#          averageUtilization: 100
 
 ---
 apiVersion: v1
