@@ -36,6 +36,7 @@ func (s *server) GetById(ctx context.Context, req *pbUser.GetByIdRequest) (res *
 		LastName:  doc.LastName,
 		Photo:     doc.Photo,
 		PhotoRec:  doc.PhotoRec,
+		BanReview: doc.BanReview,
 	}
 	return
 }

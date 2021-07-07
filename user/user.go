@@ -12,4 +12,5 @@ type User struct {
 	Email     string             `bson:"e,omitempty"`
 	Photo     string             `bson:"p,omitempty"`
 	PhotoRec  string             `bson:"pr,omitempty"`
+	BanReview bool               `bson:"br,omitempty"`
 }
