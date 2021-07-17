@@ -3,8 +3,8 @@ package role
 import (
 	"context"
 	"errors"
-	"github.com/nnqq/scr-user/logger"
-	"github.com/nnqq/scr-user/mongo"
+	"github.com/leaq-ru/user/logger"
+	"github.com/leaq-ru/user/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	m "go.mongodb.org/mongo-driver/mongo"

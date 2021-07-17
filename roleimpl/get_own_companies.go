@@ -2,10 +2,10 @@ package roleimpl
 
 import (
 	"context"
-	"github.com/nnqq/scr-proto/codegen/go/user"
-	"github.com/nnqq/scr-user/logger"
-	"github.com/nnqq/scr-user/mongo"
-	"github.com/nnqq/scr-user/role"
+	"github.com/leaq-ru/proto/codegen/go/user"
+	"github.com/leaq-ru/user/logger"
+	"github.com/leaq-ru/user/mongo"
+	"github.com/leaq-ru/user/role"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"

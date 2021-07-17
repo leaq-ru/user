@@ -1,12 +1,12 @@
 package main
 
 import (
-	graceful "github.com/nnqq/scr-lib-graceful"
-	"github.com/nnqq/scr-proto/codegen/go/user"
-	"github.com/nnqq/scr-user/config"
-	"github.com/nnqq/scr-user/logger"
-	"github.com/nnqq/scr-user/roleimpl"
-	"github.com/nnqq/scr-user/userimpl"
+	graceful "github.com/leaq-ru/lib-graceful"
+	"github.com/leaq-ru/proto/codegen/go/user"
+	"github.com/leaq-ru/user/config"
+	"github.com/leaq-ru/user/logger"
+	"github.com/leaq-ru/user/roleimpl"
+	"github.com/leaq-ru/user/userimpl"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"

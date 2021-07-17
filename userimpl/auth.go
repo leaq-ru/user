@@ -2,10 +2,10 @@ package userimpl
 
 import (
 	"context"
-	pbUser "github.com/nnqq/scr-proto/codegen/go/user"
-	"github.com/nnqq/scr-user/logger"
-	"github.com/nnqq/scr-user/mongo"
-	"github.com/nnqq/scr-user/user"
+	pbUser "github.com/leaq-ru/proto/codegen/go/user"
+	"github.com/leaq-ru/user/logger"
+	"github.com/leaq-ru/user/mongo"
+	"github.com/leaq-ru/user/user"
 	"time"
 )
 

@@ -3,9 +3,9 @@ package roleimpl
 import (
 	"context"
 	"errors"
-	pbUser "github.com/nnqq/scr-proto/codegen/go/user"
-	"github.com/nnqq/scr-user/logger"
-	"github.com/nnqq/scr-user/role"
+	pbUser "github.com/leaq-ru/proto/codegen/go/user"
+	"github.com/leaq-ru/user/logger"
+	"github.com/leaq-ru/user/role"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )

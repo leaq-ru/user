@@ -1,9 +1,9 @@
 package call
 
 import (
-	"github.com/nnqq/scr-proto/codegen/go/parser"
-	"github.com/nnqq/scr-user/config"
-	"github.com/nnqq/scr-user/logger"
+	"github.com/leaq-ru/proto/codegen/go/parser"
+	"github.com/leaq-ru/user/config"
+	"github.com/leaq-ru/user/logger"
 	"google.golang.org/grpc"
 )
 

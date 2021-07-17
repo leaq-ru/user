@@ -3,7 +3,7 @@ package md
 import (
 	"context"
 	"errors"
-	"github.com/nnqq/scr-user/logger"
+	"github.com/leaq-ru/user/logger"
 	"google.golang.org/grpc/metadata"
 )
 

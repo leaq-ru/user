@@ -2,9 +2,9 @@ package userimpl
 
 import (
 	"context"
-	pbUser "github.com/nnqq/scr-proto/codegen/go/user"
-	"github.com/nnqq/scr-user/mongo"
-	"github.com/nnqq/scr-user/user"
+	pbUser "github.com/leaq-ru/proto/codegen/go/user"
+	"github.com/leaq-ru/user/mongo"
+	"github.com/leaq-ru/user/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/protobuf/types/known/emptypb"

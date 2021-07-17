@@ -1,1 +1,1 @@
-# scr-user
+https://github.com/leaq-ru/about
