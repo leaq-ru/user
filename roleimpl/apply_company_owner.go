@@ -58,34 +58,8 @@ func (*server) ApplyCompanyOwner(ctx context.Context, req *user.ApplyCompanyOwne
 		Url: compURL,
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), m.ErrNoDocuments.Error()) {
-			var urlToReindex string
-			urlToReindex, err = ensureRfHostIsPunycode(u)
-			if err != nil {
-				logger.Log.Error().Err(err).Send()
-				return
-			}
-
-			_, err = call.Company.Reindex(ctx, &parser.ReindexRequest{
-				Url: urlToReindex,
-			})
-			if err != nil {
-				logger.Log.Error().Err(err).Send()
-				return
-			}
-
-			comp, err = call.Company.GetBy(ctx, &parser.GetByRequest{
-				Url: compURL,
-			})
-			if err != nil {
-				logger.Log.Error().Err(err).Send()
-				err = errors.New("company not found")
-				return
-			}
-		} else {
-			logger.Log.Error().Err(err).Send()
-			return
-		}
+		logger.Log.Error().Err(err).Send()
+		return
 	}
 	compOID, err := primitive.ObjectIDFromHex(comp.Id)
 	if err != nil {
